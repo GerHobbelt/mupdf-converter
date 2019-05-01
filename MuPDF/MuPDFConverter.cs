@@ -5,11 +5,113 @@ using System.Text;
 using System.IO;
 using System.Drawing;
 using System.Drawing.Imaging;
+using System.Drawing.Drawing2D;
+using System.Threading.Tasks;
 
 namespace MuPDFLib
 {
     public static class MuPdfConverter
     {
+        public static List<byte[]> ConvertPdfToPng(byte[] image, int dpi, RenderType type, bool antiAlias, string pdfPassword)
+        {
+            if (image == null)
+                throw new ArgumentNullException("image");
+
+            var output = new List<byte[]>();
+
+            using (MuPDF pdfDoc = new MuPDF(image, pdfPassword))
+            {
+                ImageCodecInfo info = null;
+                foreach (ImageCodecInfo ice in ImageCodecInfo.GetImageEncoders())
+                    if (ice.MimeType == "image/tiff")
+                        info = ice;
+                    
+                pdfDoc.AntiAlias = antiAlias;
+
+                //Parallel.For(1, pdfDoc.PageCount,
+                //i =>
+                for(int i = 1; i <= pdfDoc.PageCount; i++)
+                {
+                    using (MemoryStream outputStream = new MemoryStream())
+                    {
+                        int Width = 0;//Zero for no resize.
+                        int Height = 0;//Zero for autofit height to width.
+
+                        pdfDoc.Page = i;
+
+                        using (var bitmap = pdfDoc.GetBitmap(Width, Height, dpi, dpi, 0, type, false, false, 0))
+                        {
+                            if (bitmap == null)
+                                throw new Exception("Unable to convert pdf to png!");
+
+                            if (type.Equals(RenderType.RGB) && pdfDoc.Variance < 4)
+                            {
+                                using (var mBitmap = pdfDoc.GetBitmap(Width, Height, dpi, dpi, 0, RenderType.Monochrome, false, false, 0))
+                                {
+                                    using (EncoderParameters ep = new EncoderParameters(1))
+                                    {
+                                        ep.Param[0] = new EncoderParameter(System.Drawing.Imaging.Encoder.Compression, (long)EncoderValue.CompressionCCITT4);
+
+                                        mBitmap.Save(outputStream, info, ep);
+                                    }
+                                }
+                            }
+                            else
+                            {
+                                using (EncoderParameters ep = new EncoderParameters(1))
+                                {
+                                    ep.Param[0] = new EncoderParameter(System.Drawing.Imaging.Encoder.Compression, (long)EncoderValue.CompressionLZW);
+                                    if (type == RenderType.Monochrome)
+                                    {
+                                        ep.Param[0] = new EncoderParameter(System.Drawing.Imaging.Encoder.Compression, (long)EncoderValue.CompressionCCITT4);
+                                    }
+
+                                    bitmap.Save(outputStream, info, ep);
+                                }
+                            }
+                        }
+
+                        output.Add(outputStream.ToArray());
+                    }
+                }
+                    //});
+            }
+            return output;
+        }
+
+        private static Image ResizeImage(Image img, Size newSize)
+        {
+            Image thumbnail = new Bitmap(newSize.Width, newSize.Height);
+
+            Graphics graphic = Graphics.FromImage(thumbnail);
+
+            graphic.InterpolationMode = InterpolationMode.HighQualityBicubic;
+            graphic.SmoothingMode = SmoothingMode.HighQuality;
+            graphic.PixelOffsetMode = PixelOffsetMode.HighQuality;
+            graphic.CompositingQuality = CompositingQuality.HighQuality;
+
+            // Figure out the ratio
+            double ratioX = (double)newSize.Width / (double)img.Size.Width;
+            double ratioY = (double)newSize.Height / (double)img.Size.Height;
+            // use whichever multiplier is smaller
+            double ratio = ratioX < ratioY ? ratioX : ratioY;
+
+            // now we can get the new height and width
+            int newHeight = Convert.ToInt32(img.Size.Height * ratio);
+            int newWidth = Convert.ToInt32(img.Size.Width * ratio);
+
+            // Now calculate the X,Y position of the upper-left corner 
+            // (one of these will always be zero)
+            int posX = Convert.ToInt32((newSize.Width - (img.Size.Width * ratio)) / 2);
+            int posY = Convert.ToInt32((newSize.Height - (img.Size.Height * ratio)) / 2);
+
+            graphic.Clear(Color.White); // white padding
+            graphic.DrawImage(img, posX, posY, newWidth, newHeight);
+
+            return thumbnail;
+        }
+
+
         public static byte[] ConvertPdfToTiff(byte[] image, float dpi, RenderType type, bool rotateLandscapePages, bool shrinkToLetter, int maxSizeInPdfPixels, string pdfPassword)
         {
             byte[] output = null;

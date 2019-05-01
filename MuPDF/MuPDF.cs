@@ -352,6 +352,9 @@ namespace MuPDFLib
             Dispose(false);
         }
 
+        private long _aVariance;
+        public long Variance => _aVariance;
+
         [System.Runtime.ExceptionServices.HandleProcessCorruptedStateExceptions]
         public unsafe Bitmap GetBitmap(int width, int height, float dpix, float dpiy, int rotation, RenderType type, bool rotateLandscapePages, bool convertToLetter, int maxSize)
         {
@@ -367,6 +370,10 @@ namespace MuPDFLib
                 BitmapData imageData = bitmap2.LockBits(new Rectangle(0, 0, width, height), ImageLockMode.ReadWrite, bitmap2.PixelFormat);
                 byte* ptrSrc = (byte*)data;
                 byte* ptrDest = (byte*)imageData.Scan0;
+
+                long variance = 0, pixCount = 0;
+                long i = 0, j = 0, k = 0;
+
                 for (int y = 0; y < height; y++)
                 {
                     byte* pl = ptrDest;
@@ -375,17 +382,22 @@ namespace MuPDFLib
                     {
                         //Swap these here instead of in MuPDF because most pdf images will be rgb or cmyk.
                         //Since we are going through the pixels one by one anyway swap here to save a conversion from rgb to bgr.
-                        pl[2] = sl[0]; //b-r
-                        pl[1] = sl[1]; //g-g
-                        pl[0] = sl[2]; //r-b
+                        i = pl[2] = sl[0]; //b-r
+                        j = pl[1] = sl[1]; //g-g
+                        k = pl[0] = sl[2]; //r-b
                         //pl[3] = sl[3]; //alpha
                         pl += 3;
                         sl += 4;
+
+                        variance += Math.Abs(i - j) + Math.Abs(j - k) + Math.Abs(k - i);
+                        pixCount++;
                     }
                     ptrDest += imageData.Stride;
                     ptrSrc += width * 4;
                 }
                 bitmap2.UnlockBits(imageData);
+
+                _aVariance = variance / pixCount;
             }
             else if (type == RenderType.Grayscale)
             {
