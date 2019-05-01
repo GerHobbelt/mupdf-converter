@@ -7,11 +7,75 @@ using System.Drawing;
 using System.Drawing.Imaging;
 using System.Drawing.Drawing2D;
 using System.Threading.Tasks;
+using System.Collections.Concurrent;
 
 namespace MuPDFLib
 {
     public static class MuPdfConverter
     {
+        public static Dictionary<int,byte[]> FastConvert(byte[] image)
+        {
+            if (image == null)
+                throw new ArgumentNullException("image");
+
+            var output = new ConcurrentDictionary<int, byte[]>();
+
+            ImageCodecInfo info = null;
+            foreach (ImageCodecInfo ice in ImageCodecInfo.GetImageEncoders())
+                if (ice.MimeType == "image/tiff")
+                    info = ice;
+
+            var docList = new Dictionary<int, RenderType>();
+
+            using (MuPDF pdfDoc = new MuPDF(image, string.Empty))
+            {
+                pdfDoc.AntiAlias = false;
+
+                for (int i = 1; i <= pdfDoc.PageCount; i++)
+                {
+                    pdfDoc.Page = i;
+                    using (var bitmap = pdfDoc.GetBitmap(100, 0, 50, 50, 0, RenderType.RGB, false, false, 0))
+                    {
+                        docList.Add(i, pdfDoc.Variance > 4 ? RenderType.RGB : RenderType.Monochrome);
+                    }
+                }
+            }
+
+            Parallel.ForEach(docList, page =>
+            {
+                using (MuPDF pdfDoc = new MuPDF(image, string.Empty))
+                {
+                    pdfDoc.Page = page.Key;
+                    using (MemoryStream outputStream = new MemoryStream())
+                    {
+                        var width = 0;
+                        var height = 0;
+                        var dpi = 180;
+
+                        if (page.Value.Equals(RenderType.RGB))
+                        {
+                            width = 1000;
+                            dpi = 100;
+                        }
+
+                        using (var bitmap = pdfDoc.GetBitmap(width, height, dpi, dpi, 0, page.Value, false, false, 0))
+                        {
+                            using (EncoderParameters ep = new EncoderParameters(1))
+                            {
+                                ep.Param[0] = new EncoderParameter(System.Drawing.Imaging.Encoder.Compression, page.Value.Equals(RenderType.Monochrome) ? (long)EncoderValue.CompressionCCITT4 : (long)EncoderValue.CompressionLZW);
+                                bitmap.Save(outputStream, info, ep);
+                            }
+                        }
+
+                        output.TryAdd(page.Key, outputStream.ToArray());
+                    }
+                }
+            });
+
+            return output.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+        }
+
+
         public static List<byte[]> ConvertPdfToPng(byte[] image, int dpi, Size size, RenderType type, bool antiAlias, string pdfPassword)
         {
             if (image == null)
