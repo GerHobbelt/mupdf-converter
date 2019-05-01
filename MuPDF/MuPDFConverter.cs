@@ -12,6 +12,74 @@ namespace MuPDFLib
 {
     public static class MuPdfConverter
     {
+        public static List<byte[]> ConvertPdfToPng(byte[] image, int dpi, Size size, RenderType type, bool antiAlias, string pdfPassword)
+        {
+            if (image == null)
+                throw new ArgumentNullException("image");
+
+            var output = new List<byte[]>();
+
+            using (MuPDF pdfDoc = new MuPDF(image, pdfPassword))
+            {
+                ImageCodecInfo info = null;
+                foreach (ImageCodecInfo ice in ImageCodecInfo.GetImageEncoders())
+                    if (ice.MimeType == "image/tiff")
+                        info = ice;
+
+                pdfDoc.AntiAlias = antiAlias;
+
+                //Parallel.For(1, pdfDoc.PageCount,
+                //i =>
+                for (int i = 1; i <= pdfDoc.PageCount; i++)
+                {
+                    using (MemoryStream outputStream = new MemoryStream())
+                    {
+                        int Width = size.Width;//Zero for no resize.
+                        int Height = size.Height;//Zero for autofit height to width.
+
+                        pdfDoc.Page = i;
+                    
+                        using (var bitmap = pdfDoc.GetBitmap(Width, Height, dpi, dpi, 0, type, false, false, 0))
+                        {
+                            if (bitmap == null)
+                                throw new Exception("Unable to convert pdf to png!");
+
+                            if (type.Equals(RenderType.RGB) && pdfDoc.Variance < 4)
+                            {
+                                using (var mBitmap = pdfDoc.GetBitmap(Width, Height, dpi, dpi, 0, RenderType.Monochrome, false, false, 0))
+                                {
+                                    using (EncoderParameters ep = new EncoderParameters(1))
+                                    {
+                                        ep.Param[0] = new EncoderParameter(System.Drawing.Imaging.Encoder.Compression, (long)EncoderValue.CompressionCCITT4);
+
+                                        mBitmap.Save(outputStream, info, ep);
+                                    }
+                                }
+                            }
+                            else
+                            {
+                                using (EncoderParameters ep = new EncoderParameters(1))
+                                {
+                                    ep.Param[0] = new EncoderParameter(System.Drawing.Imaging.Encoder.Compression, (long)EncoderValue.CompressionLZW);
+                                    if (type == RenderType.Monochrome)
+                                    {
+                                        ep.Param[0] = new EncoderParameter(System.Drawing.Imaging.Encoder.Compression, (long)EncoderValue.CompressionCCITT4);
+                                    }
+
+                                    bitmap.Save(outputStream, info, ep);
+                                }
+                            }
+                        }
+
+                        output.Add(outputStream.ToArray());
+                    }
+                }
+                //});
+            }
+            return output;
+        }
+
+
         public static List<byte[]> ConvertPdfToPng(byte[] image, int dpi, RenderType type, bool antiAlias, string pdfPassword)
         {
             if (image == null)
