@@ -1,4 +1,5 @@
 ﻿  MuPDFClass.cpp
   MuPDFClassCallers.cpp
-     Creating library C:\Users\trodgers\source\repos\mupdf-converter\MuPDFlib\Debug\MuPDFLib-x86.lib and object C:\Users\trodgers\source\repos\mupdf-converter\MuPDFlib\Debug\MuPDFLib-x86.exp
-  MuPDFLib.vcxproj -> C:\Users\trodgers\source\repos\mupdf-converter\MuPDFlib\Debug\MuPDFLib-x86.dll
+     Creating library C:\Users\trodgers\source\repos\mupdf-converter\MuPDFlib\Debug\MuPDFLib-x64.lib and object C:\Users\trodgers\source\repos\mupdf-converter\MuPDFlib\Debug\MuPDFLib-x64.exp
+LINK : warning LNK4075: ignoring '/LARGEADDRESSAWARE:NO' due to '/DLL' specification
+  MuPDFLib.vcxproj -> C:\Users\trodgers\source\repos\mupdf-converter\MuPDFlib\Debug\MuPDFLib-x64.dll

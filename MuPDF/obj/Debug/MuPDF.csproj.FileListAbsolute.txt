@@ -5,3 +5,4 @@ C:\Users\trodgers\Source\Repos\mupdf-converter\MuPDF\bin\Debug\MuPDF.pdb
 C:\Users\trodgers\Source\Repos\mupdf-converter\MuPDF\obj\Debug\MuPDF.csproj.CoreCompileInputs.cache
 C:\Users\trodgers\Source\Repos\mupdf-converter\MuPDF\obj\Debug\MuPDF.dll
 C:\Users\trodgers\Source\Repos\mupdf-converter\MuPDF\obj\Debug\MuPDF.pdb
+C:\Users\trodgers\source\repos\mupdf-converter\MuPDF\obj\Debug\MuPDF.csprojAssemblyReference.cache
