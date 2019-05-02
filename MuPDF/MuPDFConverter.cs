@@ -13,6 +13,60 @@ namespace MuPDFLib
 {
     public static class MuPdfConverter
     {
+        public static Dictionary<int, byte[]> FastConvert(byte[] image, RenderType type)
+        {
+            if (image == null)
+                throw new ArgumentNullException("image");
+
+            var output = new ConcurrentDictionary<int, byte[]>();
+
+            ImageCodecInfo info = null;
+            foreach (ImageCodecInfo ice in ImageCodecInfo.GetImageEncoders())
+                if (ice.MimeType == "image/tiff")
+                    info = ice;
+
+            var docList = new Dictionary<int, RenderType>();
+            var pageCount = 0;
+
+            using (MuPDF pdfDoc = new MuPDF(image, string.Empty))
+            {
+                pageCount = pdfDoc.PageCount;
+            }
+
+            if (pageCount > 0)
+            {
+                Parallel.For(1, pageCount+1, index =>
+                {
+                    using (MuPDF pdfDoc = new MuPDF(image, string.Empty))
+                    {
+                        pdfDoc.Page = index;
+                        
+                        using (MemoryStream outputStream = new MemoryStream())
+                        {
+                            var width = 0;
+                            var height = 0;
+                            var dpi = 150;
+                            var maxSize = 1000;
+                            
+                            using (var bitmap = pdfDoc.GetBitmap(width, height, dpi, dpi, 0, type, false, false, maxSize))
+                            {
+                                using (EncoderParameters ep = new EncoderParameters(1))
+                                {
+                                    ep.Param[0] = new EncoderParameter(System.Drawing.Imaging.Encoder.Compression, type.Equals(RenderType.Monochrome) ? (long)EncoderValue.CompressionCCITT4 : (long)EncoderValue.CompressionLZW);
+                                    bitmap.Save(outputStream, info, ep);
+                                }
+                            }
+
+                            output.TryAdd(index, outputStream.ToArray());
+                        }
+                    }
+                });
+            }
+
+            return output.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+        }
+
+
         public static Dictionary<int,byte[]> FastConvert(byte[] image)
         {
             if (image == null)
