@@ -13,10 +13,10 @@ namespace MuPDFLib
 {
     public static class MuPdfConverter
     {
-        public static IDictionary<int, byte[]> FastConvert(byte[] image, RenderType type, float dpi = 150)
+        public static IDictionary<int, byte[]> FastConvert(byte[] image, RenderType type, bool antiAlias = false, float dpi = 150)
         {
-            if (image == null)
-                throw new ArgumentNullException("image");
+            if (image == null || image.Length.Equals(0))
+                throw new ArgumentNullException(nameof(image));
 
             var output = new ConcurrentDictionary<int, byte[]>();
             var pageCount = 0;
@@ -33,6 +33,7 @@ namespace MuPDFLib
                     using (MuPDF pdfDoc = new MuPDF(image, string.Empty))
                     {
                         pdfDoc.Page = index;
+                        pdfDoc.AntiAlias = antiAlias && !type.Equals(RenderType.Monochrome); // no point in anti-alias-ing with Monochrome
                         
                         using (MemoryStream outputStream = new MemoryStream())
                         {
