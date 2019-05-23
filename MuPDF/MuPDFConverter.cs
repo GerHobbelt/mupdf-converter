@@ -13,7 +13,7 @@ namespace MuPDFLib
 {
     public static class MuPdfConverter
     {
-        public static IDictionary<int, byte[]> FastConvert(byte[] image, RenderType type, bool antiAlias = false, float dpi = 150)
+        public static IDictionary<int, byte[]> FastConvert(byte[] image, RenderType type, bool antiAlias = false, float dpi = 150, string password = "")
         {
             if (image == null || image.Length.Equals(0))
                 throw new ArgumentNullException(nameof(image));
@@ -30,7 +30,7 @@ namespace MuPDFLib
             {
                 Parallel.For(1, pageCount+1, index =>
                 {
-                    using (MuPDF pdfDoc = new MuPDF(image, string.Empty))
+                    using (MuPDF pdfDoc = new MuPDF(image, password))
                     {
                         pdfDoc.Page = index;
                         pdfDoc.AntiAlias = antiAlias && !type.Equals(RenderType.Monochrome); // no point in anti-alias-ing with Monochrome
