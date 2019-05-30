@@ -1,0 +1,8 @@
+C:\Users\trodgers\source\repos\mupdf-converter\MuPDF\bin\Release\MuPDFLib-x64.dll
+C:\Users\trodgers\source\repos\mupdf-converter\MuPDF\bin\Release\MuPDFLib-x86.dll
+C:\Users\trodgers\source\repos\mupdf-converter\MuPDF\bin\Release\MuPDF.dll
+C:\Users\trodgers\source\repos\mupdf-converter\MuPDF\bin\Release\MuPDF.pdb
+C:\Users\trodgers\source\repos\mupdf-converter\MuPDF\obj\Release\MuPDF.csprojAssemblyReference.cache
+C:\Users\trodgers\source\repos\mupdf-converter\MuPDF\obj\Release\MuPDF.csproj.CoreCompileInputs.cache
+C:\Users\trodgers\source\repos\mupdf-converter\MuPDF\obj\Release\MuPDF.dll
+C:\Users\trodgers\source\repos\mupdf-converter\MuPDF\obj\Release\MuPDF.pdb
