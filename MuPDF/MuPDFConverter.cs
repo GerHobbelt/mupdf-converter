@@ -28,7 +28,7 @@ namespace MuPDFLib
 
             if (pageCount > 0)
             {
-                Parallel.For(1, pageCount, index =>
+                Parallel.For(1, pageCount, new ParallelOptions { MaxDegreeOfParallelism = 6 }, index =>
                 {
                     using (MuPDF pdfDoc = new MuPDF(pdfBytes, password))
                     {
@@ -48,7 +48,7 @@ namespace MuPDFLib
                             }
                         }
                     }
-                });
+                } );
             }
 
             return output.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
