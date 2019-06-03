@@ -1,34 +1,39 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.IO;
-using System.Drawing;
-using System.Drawing.Imaging;
-using System.Drawing.Drawing2D;
-using System.Threading.Tasks;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Drawing;
+using System.Drawing.Drawing2D;
+using System.Drawing.Imaging;
+using System.IO;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace MuPDFLib
 {
     public static class MuPdfConverter
     {
-        public static IDictionary<int, byte[]> ConvertPdfToPng(byte[] pdfBytes, RenderType type, bool antiAlias = false, float dpi = 150, Size size = new Size(), string password = "")
+        public static IDictionary<int, byte[]> ConvertPdfToPng(byte[] pdfBytes, RenderType type, bool antiAlias = false, float dpi = 150, Size size = new Size(), string password = "", int pageId = 0)
         {
             if (pdfBytes == null || pdfBytes.Length.Equals(0))
                 throw new ArgumentNullException(nameof(pdfBytes));
 
             var output = new ConcurrentDictionary<int, byte[]>();
-            var pageCount = 0;
 
-            using (MuPDF pdfDoc = new MuPDF(pdfBytes, password))
+            var pageStart = pageId;
+            var pageCount = pageId + 1;
+
+            if (pageId.Equals(0))
             {
-                pageCount = pdfDoc.PageCount+1;
+                pageStart = 1;
+                using (MuPDF pdfDoc = new MuPDF(pdfBytes, password))
+                {
+                    pageCount = pdfDoc.PageCount + 1;
+                }
             }
 
             if (pageCount > 0)
             {
-                Parallel.For(1, pageCount, new ParallelOptions { MaxDegreeOfParallelism = 6 }, index =>
+                Parallel.For(pageStart, pageCount, new ParallelOptions { MaxDegreeOfParallelism = 6 }, index =>
                 {
                     using (MuPDF pdfDoc = new MuPDF(pdfBytes, password))
                     {
