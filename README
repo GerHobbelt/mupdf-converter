@@ -2,7 +2,7 @@ This is a basic C# .NET 4.0 wrapper for part of the MuPDF library. This code all
 
 If you want a .NET 2.0 version of this library all you have to do is strip out the post-.NET 2.0 WPF stuff (should work - haven't tested it).
 
-Included is a sample of how to use this library. I included a MuPDFConverter class that will convert a Pdf document to a Tiff document with minimal input.
+Included is a sample of how to use this library. I included a MuPDFConverter class that will convert a Pdf document to a Tiff document with minimal input.  
 
 This library has been modified to add a monochrome color space. The focus of the monochrome color space is to make the best readable tiff documents for faxing. Some detail (shading, etc) might be lost in the conversion to monochrome tiff images, but that is typically not a concern.
 
@@ -13,3 +13,5 @@ The MuPDF library itself is wrapped in a C++ object. Why? Debugging P/Invoke cod
 It was also a design decision to always build and make available 32-bit and 64-bit Dlls. Since mostly anywhere you may want to run this will probably have a mix of those machine types. Eventually 32-bit code will be dropped. There is a measurable performance increase running the 64-bit binaries on a 64-bit machine.
 
 This project has been tested in a multi-threaded conversion environment and has already successfully converted millions of Pdf documents to Tiff format. This library is also used in a C# WPF Image Viewer application used to view documents of multiple types.
+
+This fork adds an additional method to convert Pdfs to PNG images.  
