@@ -12,23 +12,51 @@ namespace MuPDFLib
 {
     public static class MuPdfConverter
     {
-        public static IDictionary<int, byte[]> ConvertPdfToPng(byte[] pdfBytes, RenderType type, bool antiAlias = false, float dpi = 150, Size size = new Size(), string password = "", int pageId = 0)
+        public static IDictionary<int, byte[]> ConvertPdfToPng(byte[] pdfBytes, RenderType type, int pageStart, int pageEnd, bool antiAlias = false, float dpi = 150, Size size = new Size(), string password = "")
         {
             if (pdfBytes == null || pdfBytes.Length.Equals(0))
                 throw new ArgumentNullException(nameof(pdfBytes));
 
             var output = new ConcurrentDictionary<int, byte[]>();
 
-            var pageStart = pageId;
-            var pageCount = pageId + 1;
-
-            if (pageId.Equals(0))
+            Parallel.For(pageStart, pageEnd, new ParallelOptions { MaxDegreeOfParallelism = 6 }, index =>
             {
-                pageStart = 1;
                 using (MuPDF pdfDoc = new MuPDF(pdfBytes, password))
                 {
-                    pageCount = pdfDoc.PageCount + 1;
+                    pdfDoc.Page = index;
+                    pdfDoc.AntiAlias = antiAlias && !type.Equals(RenderType.Monochrome); // no point in anti-alias-ing with Monochrome
+
+                        using (MemoryStream outputStream = new MemoryStream())
+                    {
+                        var width = 0;
+                        var height = 0;
+                        var maxSize = 1000;
+
+                        using (var bitmap = ResizeImage(size, pdfDoc.GetBitmap(width, height, dpi, dpi, 0, type, false, false, maxSize)))
+                        {
+                            bitmap.Save(outputStream, ImageFormat.Png);
+                            output.TryAdd(index, outputStream.ToArray());
+                        }
+                    }
                 }
+            });
+
+            return output.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+        }
+
+        public static IDictionary<int, byte[]> ConvertPdfToPng(byte[] pdfBytes, RenderType type, bool antiAlias = false, float dpi = 150, Size size = new Size(), string password = "")
+        {
+            if (pdfBytes == null || pdfBytes.Length.Equals(0))
+                throw new ArgumentNullException(nameof(pdfBytes));
+
+            var output = new ConcurrentDictionary<int, byte[]>();
+
+            var pageStart = 1;
+            var pageCount = 0;
+            
+            using (MuPDF pdfDoc = new MuPDF(pdfBytes, password))
+            {
+                pageCount = pdfDoc.PageCount + 1;
             }
 
             if (pageCount > 0)
@@ -53,7 +81,39 @@ namespace MuPDFLib
                             }
                         }
                     }
-                } );
+                });
+            }
+
+            return output.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+        }
+
+        public static IDictionary<int, byte[]> ConvertPdfToPng(byte[] pdfBytes, RenderType type, int pageNumber, bool antiAlias = false, float dpi = 150, Size size = new Size(), string password = "")
+        {
+            if (pdfBytes == null || pdfBytes.Length.Equals(0))
+                throw new ArgumentNullException(nameof(pdfBytes));
+
+            var output = new ConcurrentDictionary<int, byte[]>();
+
+            var pageStart = pageNumber;
+            var pageEnd = pageNumber + 1;
+            
+            using (MuPDF pdfDoc = new MuPDF(pdfBytes, password))
+            {
+                pdfDoc.Page = pageNumber;
+                pdfDoc.AntiAlias = antiAlias && !type.Equals(RenderType.Monochrome); // no point in anti-alias-ing with Monochrome
+
+                using (MemoryStream outputStream = new MemoryStream())
+                {
+                    var width = 0;
+                    var height = 0;
+                    var maxSize = 1000;
+
+                    using (var bitmap = ResizeImage(size, pdfDoc.GetBitmap(width, height, dpi, dpi, 0, type, false, false, maxSize)))
+                    {
+                        bitmap.Save(outputStream, ImageFormat.Png);
+                        output.TryAdd(pageNumber, outputStream.ToArray());
+                    }
+                }
             }
 
             return output.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
